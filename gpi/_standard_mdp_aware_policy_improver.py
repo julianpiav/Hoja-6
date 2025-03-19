@@ -1,44 +1,34 @@
-from _base import GeneralPolicyIterationComponent
+from gpi._base import GeneralPolicyIterationComponent
 
 
 class StandardMDPAwarePolicyImprover(GeneralPolicyIterationComponent):
 
     def __init__(self, mdp):
         self.mdp = mdp
-    
+
     def step(self):
         """
         Actualiza la política en el workspace basándose en los valores de acción-estado.
         Implementa el paso de mejora de política del algoritmo de Policy Iteration.
         """
-    # Si no hay valores de acción-estado, no podemos mejorar la política
+        # Si no existen los valores Q, no se puede mejorar la política
         if self.workspace.q is None:
             return
-    
-    # Inicializar la política si es necesario
-        if self.workspace.policy is None:
-            # Crear una función que represente la política
-            def policy(s):
-                if self.mdp.is_terminal_state(s):
-                    return None
-                # Elegir la acción con el mayor valor de acción-estado
-                actions = self.mdp.get_actions_in_state(s)
-                if not actions:
-                    return None
-                return max(actions, key=lambda a: self.workspace.q[s][a])
-            
-            self.workspace.replace_policy(policy)
-            return
-        
-        # Actualizar la política para elegir la acción con el mayor valor de acción-estado
-        old_policy = self.workspace.policy
-        
-        def new_policy(s):
+
+        # Recorrer todos los estados definidos en el MDP
+        for s in self.mdp.states:
+            # Si el estado es terminal, se ignora pues no hay acciones aplicables
             if self.mdp.is_terminal_state(s):
-                return None
-            actions = self.mdp.get_actions_in_state(s)
-            if not actions:
-                return None
-            return max(actions, key=lambda a: self.workspace.q[s][a])
-        
-        self.workspace.replace_policy(new_policy)
+                continue
+
+            # Se asume que en el workspace, self.workspace.q es un diccionario
+            # donde cada estado 's' tiene asociado otro diccionario con pares {acción: Q(s,a)}
+            q_values = self.workspace.q[s]
+
+            # Se selecciona la acción con el valor Q máximo en el estado s.
+            # La función max() aplicada al diccionario usa, con key=q_values.get,
+            # el valor de cada clave para la comparación.
+            best_action = max(q_values, key=q_values.get)
+
+            # Se actualiza la política en el workspace para el estado s con la mejor acción encontrada.
+            self.workspace.policy[s] = best_action
